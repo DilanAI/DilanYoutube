@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Search with Suggestions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 560px;
+        }
+
+        #searchQuery {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #suggestions {
+            border: 1px solid #ccc;
+            width: 100%;
+            margin-top: 2px;
+            position: absolute;
+            background-color: white;
+            z-index: 1000;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .suggestion-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #333;
+            transition: background-color 0.2s;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        #player {
+            margin-top: 30px;
+            max-width: 100%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        iframe {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Search YouTube Videos</h2>
+    <div class="search-wrapper">
+        <input type="text" id="searchQuery" placeholder="Enter a keyword..." oninput="debouncedSuggest()" autocomplete="off">
+        <div id="suggestions"></div>
+    </div>
+
+    <div id="player"></div>
+
+    <script>
+        const API_KEY = 'AIzaSyD4KWt4KRzrkDq_4dCRapQNl6VJTOAm9DE'; // Replace with your key
+        let debounceTimeout;
+
+        function debouncedSuggest() {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(showSuggestions, 300);
+        }
+
+        function showSuggestions() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const suggestionBox = document.getElementById('suggestions');
+
+            if (!query) {
+                suggestionBox.innerHTML = '';
+                return;
+            }
+
+            fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=5&key=${API_KEY}`)
+                .then(response => response.json())
+                .then(data => {
+                    const suggestions = data.items;
+                    suggestionBox.innerHTML = '';
+                    
+                    suggestions.forEach(item => {
+                        const videoId = item.id.videoId;
+                        const title = item.snippet.title;
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        div.textContent = title;
+                        div.onclick = () => {
+                            embedVideo(videoId);
+                            document.getElementById('searchQuery').value = title;
+                            suggestionBox.innerHTML = '';
+                        };
+                        suggestionBox.appendChild(div);
+                    });
+                })
+                .catch(error => {
+                    console.error('Suggestion fetch error:', error);
+                });
+        }
+
+        function embedVideo(videoId) {
+            const embedHtml = `
+                <iframe width="800" height="500"
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+                    frameborder="0" allow="autoplay; encrypted-media"
+                    allowfullscreen></iframe>
+            `;
+            document.getElementById('player').innerHTML = embedHtml;
+        }
+    </script>
+</body>
+</html>
